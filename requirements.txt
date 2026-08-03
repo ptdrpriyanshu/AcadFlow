@@ -6,3 +6,4 @@ passlib[bcrypt]
 bcrypt==4.0.1
 pytest
 httpx
+httpx2  # starlette's TestClient prefers this over httpx now; silences StarletteDeprecationWarning

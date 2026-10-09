@@ -25,6 +25,9 @@ class Student(Base):
     grades = relationship(
         "Grade", back_populates="student", cascade="all, delete-orphan"
     )
+    attendances = relationship(
+        "Attendance", back_populates="student", cascade="all, delete-orphan"
+    )
 
 
 class Subject(Base):
@@ -33,7 +36,12 @@ class Subject(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
 
-    grades = relationship("Grade", back_populates="subject")
+    grades = relationship(
+        "Grade", back_populates="subject", cascade="all, delete-orphan"
+    )
+    assignments = relationship(
+        "Assignment", back_populates="subject", cascade="all, delete-orphan"
+    )
 
 
 class Grade(Base):
@@ -48,6 +56,32 @@ class Grade(Base):
 
     student = relationship("Student", back_populates="grades")
     subject = relationship("Subject", back_populates="grades")
+
+
+class Attendance(Base):
+    __tablename__ = "attendance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    date = Column(String, nullable=False)            # e.g. "2026-09-17"
+    status = Column(String, nullable=False)          # "Present", "Absent", "Late", "Excused"
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    student = relationship("Student", back_populates="attendances")
+
+
+class Assignment(Base):
+    __tablename__ = "assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    description = Column(String, nullable=True, default="")
+    due_date = Column(String, nullable=False)        # e.g. "2026-09-25"
+    status = Column(String, nullable=False, default="Pending")  # "Pending", "In Progress", "Completed"
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    subject = relationship("Subject", back_populates="assignments")
 
 
 class User(Base):

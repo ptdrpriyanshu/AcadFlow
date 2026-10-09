@@ -161,11 +161,42 @@ class TestSubjectsRoutes:
         )
         assert response.status_code == 422
 
+    def test_post_duplicate_subject_returns_409(self, client, auth_headers):
+        client.post("/subjects", json={"name": "History"}, headers=auth_headers)
+        response = client.post(
+            "/subjects", json={"name": "History"}, headers=auth_headers
+        )
+        assert response.status_code == 409
+
     def test_get_subjects_returns_all_created(self, client, auth_headers):
         client.post("/subjects", json={"name": "Math"}, headers=auth_headers)
         client.post("/subjects", json={"name": "English"}, headers=auth_headers)
         response = client.get("/subjects")
         assert len(response.json()) == 2
+
+    def test_get_subject_by_id_returns_subject(self, client, auth_headers):
+        subject = client.post(
+            "/subjects", json={"name": "Chemistry"}, headers=auth_headers
+        ).json()
+        response = client.get(f"/subjects/{subject['id']}")
+        assert response.status_code == 200
+        assert response.json()["name"] == "Chemistry"
+
+    def test_get_subject_by_id_returns_404(self, client):
+        response = client.get("/subjects/9999")
+        assert response.status_code == 404
+
+    def test_delete_subject_removes_it(self, client, auth_headers):
+        subject = client.post(
+            "/subjects", json={"name": "Biology"}, headers=auth_headers
+        ).json()
+        response = client.delete(f"/subjects/{subject['id']}", headers=auth_headers)
+        assert response.status_code == 204
+        assert client.get(f"/subjects/{subject['id']}").status_code == 404
+
+    def test_delete_subject_returns_404(self, client, auth_headers):
+        response = client.delete("/subjects/9999", headers=auth_headers)
+        assert response.status_code == 404
 
 
 # ---- Grades -------------------------------------------------------------
@@ -201,6 +232,36 @@ class TestGradesRoutes:
         body = response.json()
         assert body["score"] == 85.0
         assert "id" in body
+
+    def test_post_grade_with_nonexistent_student_returns_404(self, client, auth_headers):
+        subject = client.post("/subjects", json={"name": "Art"}, headers=auth_headers).json()
+        response = client.post(
+            "/grades",
+            json={
+                "student_id": 9999,
+                "subject_id": subject["id"],
+                "score": 85.0,
+                "semester": "2026-S1",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 404
+
+    def test_post_grade_with_nonexistent_subject_returns_404(self, client, auth_headers):
+        student = client.post(
+            "/students", json={"name": "Bob", "grade_level": "5B"}, headers=auth_headers
+        ).json()
+        response = client.post(
+            "/grades",
+            json={
+                "student_id": student["id"],
+                "subject_id": 9999,
+                "score": 85.0,
+                "semester": "2026-S1",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 404
 
     def test_post_grade_rejects_score_above_100(self, client, auth_headers):
         # Pydantic validation: score has le=100.0
@@ -266,6 +327,46 @@ class TestGradesRoutes:
         response = client.get(f"/grades?student_id={alice['id']}")
         assert len(response.json()) == 1
         assert response.json()[0]["score"] == 85.0
+
+    def test_get_grade_by_id_returns_grade(self, client, auth_headers):
+        student_id, subject_id = self._make_student_and_subject(client, auth_headers)
+        created = client.post(
+            "/grades",
+            json={
+                "student_id": student_id,
+                "subject_id": subject_id,
+                "score": 91.5,
+                "semester": "2026-S1",
+            },
+            headers=auth_headers,
+        ).json()
+        response = client.get(f"/grades/{created['id']}")
+        assert response.status_code == 200
+        assert response.json()["score"] == 91.5
+
+    def test_get_grade_by_id_returns_404(self, client):
+        response = client.get("/grades/9999")
+        assert response.status_code == 404
+
+    def test_delete_grade_removes_it(self, client, auth_headers):
+        student_id, subject_id = self._make_student_and_subject(client, auth_headers)
+        created = client.post(
+            "/grades",
+            json={
+                "student_id": student_id,
+                "subject_id": subject_id,
+                "score": 91.5,
+                "semester": "2026-S1",
+            },
+            headers=auth_headers,
+        ).json()
+        response = client.delete(f"/grades/{created['id']}", headers=auth_headers)
+        assert response.status_code == 204
+        assert client.get(f"/grades/{created['id']}").status_code == 404
+
+    def test_delete_grade_returns_404(self, client, auth_headers):
+        response = client.delete("/grades/9999", headers=auth_headers)
+        assert response.status_code == 404
 
 
 # ---- End-to-end flow ----------------------------------------------------

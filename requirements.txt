@@ -4,6 +4,7 @@ psycopg2-binary
 python-jose[cryptography]
 passlib[bcrypt]
 bcrypt==4.0.1
+alembic
 pytest
 httpx
 httpx2  # starlette's TestClient prefers this over httpx now; silences StarletteDeprecationWarning

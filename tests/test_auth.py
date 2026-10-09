@@ -68,6 +68,28 @@ class TestProtectedRoutesRejectWithoutToken:
         )
         assert response.status_code == 401
 
+    def test_post_attendance_without_token_returns_401(self, client):
+        response = client.post(
+            "/attendance",
+            json={"student_id": 1, "date": "2026-09-17", "status": "Present"},
+        )
+        assert response.status_code == 401
+
+    def test_post_assignment_without_token_returns_401(self, client):
+        response = client.post(
+            "/assignments",
+            json={"title": "Quiz", "subject_id": 1, "due_date": "2026-09-25"},
+        )
+        assert response.status_code == 401
+
+    def test_delete_subject_without_token_returns_401(self, client):
+        response = client.delete("/subjects/1")
+        assert response.status_code == 401
+
+    def test_delete_grade_without_token_returns_401(self, client):
+        response = client.delete("/grades/1")
+        assert response.status_code == 401
+
 
 class TestProtectedRoutesRejectInvalidToken:
     def test_post_student_with_garbage_token_returns_401(self, client):
@@ -90,6 +112,12 @@ class TestReadRoutesStayPublic:
 
     def test_get_grades_without_token_returns_200(self, client):
         assert client.get("/grades").status_code == 200
+
+    def test_get_attendance_without_token_returns_200(self, client):
+        assert client.get("/attendance").status_code == 200
+
+    def test_get_assignments_without_token_returns_200(self, client):
+        assert client.get("/assignments").status_code == 200
 
 
 class TestProtectedRoutesAcceptValidToken:
